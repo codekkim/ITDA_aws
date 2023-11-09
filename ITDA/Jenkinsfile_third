@@ -1,7 +1,8 @@
 pipeline {
     environment { 
         repository = "siyeonkim/security"
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')        
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        TARGET_HOST = "ubuntu@3.81.5.141"
     }
     agent any
 
