@@ -1,21 +1,18 @@
 pipeline {
     environment { 
-        repository = "siyeonkim/security"  //docker hub id와 repository 이름
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub') // jenkins에 등록해 놓은 docker hub credentials 이름        
+        repository = "siyeonkim/security"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')        
     }
     agent any
 
     tools {
-        // 설치된 Maven의 이름
         maven "maven"
     }
 
     stages {
         stage('Git Pull') {
             steps {
-                 // Get some code from a GitHub repository
                 git branch: 'main', credentialsId: 'github', url: 'https://github.com/htakimsean/ITDA_aws.git'
-
             }
             post {
                 success { 
@@ -28,12 +25,11 @@ pipeline {
             }    
         }
 
-         //clone 받은 프로젝트 안의 Spring10_Security_War 디렉토리에서 stage 실행
         stage('Build') {
             steps {    
-                dir("ITDA"){   ///var/jenkins_home/workspace/test_item/Spring_Git
+                dir("ITDA"){
                     sh "mvn -DskipTests  clean package"
-                    }  
+                }  
             }
             post {
                 success {
@@ -45,33 +41,30 @@ pipeline {
                     exit 1
                 }
             } 
-
         }
-
 
         stage('Dockerizing'){
             steps{
-                dir("ITDA"){   ///var/jenkins_home/workspace/test_item/Spring_Git/Dockerfile 위치
+                dir("ITDA"){
                     sh 'echo " Image Bulid Start"'
-                    sh 'docker build . -t $repository:$BUILD_NUMBER'				//위 environment에서 설정한 repository에 이미지 생성  BUILD_NUMBER는 pipeline의 #숫자 
+                    sh 'docker build . -t $repository:$BUILD_NUMBER'
                 }
             }
-                post {
-                    success {
-                        sh 'echo "Bulid Docker Image Success"'
-                    }
-
-                    failure {
-                        sh 'echo "Bulid Docker Image Fail"'
-                        exit 1
-                    }
+            post {
+                success {
+                    sh 'echo "Bulid Docker Image Success"'
                 }
+
+                failure {
+                    sh 'echo "Bulid Docker Image Fail"'
+                    exit 1
+                }
+            }
         }
     
         stage('Login'){
             steps{
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin' // docker hub 로그인
-                //DOCKERHUB_CREDENTIALS_PSW : environment에서 설정해놓음,  --password-stdin : DOCKERHUB_CREDENTIALS_PSW를 사용
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
             
             post {
@@ -103,10 +96,10 @@ pipeline {
             }
         }    
 
-     stage('Cleaning up'){
+        stage('Cleaning up'){
             steps{
                 sh 'echo " docker image rmi"'
-                sh "docker rmi $repository:$BUILD_NUMBER" 	// docker image 제거
+                sh "docker rmi $repository:$BUILD_NUMBER"
             }
             post {
                 success {
@@ -119,19 +112,17 @@ pipeline {
                 }
             }
         }    
-    stage('multiline ssh') {
-                steps {        
-                    sshagent (credentials: ['deploy-ec2']) {
+
+        stage('multiline ssh') {
+            steps {        
+                sshagent (credentials: ['deploy-ec2']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${TARGET_HOST} '
                         sudo docker-compose up -d
                         '
                     """
-                    }
-               }
-         }
-           
+                }
+            }
         }
     }
-
-  
+}
